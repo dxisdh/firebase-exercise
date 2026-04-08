@@ -1,5 +1,9 @@
 package com.example.firebase;
 
+import android.app.AlarmManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -56,6 +60,7 @@ public class BookingActivity extends AppCompatActivity {
                     showtimeList.clear();
                     for (QueryDocumentSnapshot document : task.getResult()) {
                         Showtime showtime = document.toObject(Showtime.class);
+                        showtime.setId(document.getId());
                         showtimeList.add(showtime);
                     }
                     adapter.notifyDataSetChanged();
@@ -84,7 +89,7 @@ public class BookingActivity extends AppCompatActivity {
             userId,
             selectedShowtime.getId(),
             movie.getTitle(),
-            "Theater Name", // In real app, fetch from theater collection
+            "Theater Name",
             selectedShowtime.getStartTime(),
             seatNumber,
             selectedShowtime.getPrice()
@@ -92,11 +97,44 @@ public class BookingActivity extends AppCompatActivity {
 
         db.collection("tickets").document(ticketId).set(ticket)
             .addOnSuccessListener(aVoid -> {
+                if (selectedShowtime.getStartTime() != null) {
+                    scheduleNotification(selectedShowtime.getStartTime().getTime(), movie.getTitle(), seatNumber);
+                }
                 Toast.makeText(this, "Ticket booked successfully!", Toast.LENGTH_LONG).show();
                 finish();
             })
             .addOnFailureListener(e -> {
                 Toast.makeText(this, "Booking failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             });
+    }
+
+    private void scheduleNotification(long timeInMillis, String movieTitle, String seatNumber) {
+        Intent intent = new Intent(this, NotificationReceiver.class);
+        intent.putExtra("movieTitle", movieTitle);
+        intent.putExtra("seatNumber", seatNumber);
+
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this,
+                (int) timeInMillis,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+        if (alarmManager != null) {
+            // Thông báo trước 5 phút. Nếu muốn đúng giờ thì bỏ "- (5 * 60 * 1000)"
+            long triggerTime = timeInMillis - (5 * 60 * 1000);
+            
+            // Đảm bảo không đặt thời gian trong quá khứ
+            if (triggerTime < System.currentTimeMillis()) {
+                triggerTime = System.currentTimeMillis() + 1000;
+            }
+
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            } else {
+                alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent);
+            }
+        }
     }
 }
