@@ -41,6 +41,7 @@ public class MovieListActivity extends AppCompatActivity implements MovieAdapter
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
             }
         }
+
         setSupportActionBar(binding.toolbar);
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
@@ -85,10 +86,14 @@ public class MovieListActivity extends AppCompatActivity implements MovieAdapter
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if (item.getItemId() == R.id.action_logout) {
+        int id = item.getItemId();
+        if (id == R.id.action_logout) {
             mAuth.signOut();
             startActivity(new Intent(this, LoginActivity.class));
             finish();
+            return true;
+        } else if (id == R.id.action_tickets) {
+            startActivity(new Intent(this, MyTicketsActivity.class));
             return true;
         }
         return super.onOptionsItemSelected(item);

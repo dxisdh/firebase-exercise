@@ -28,6 +28,7 @@
         <activity android:name=".RegisterActivity" />
         <activity android:name=".MovieListActivity" />
         <activity android:name=".BookingActivity" />
+        <activity android:name=".MyTicketsActivity" android:label="My Tickets" />
 
         <receiver android:name=".NotificationReceiver" android:exported="false" />
 
